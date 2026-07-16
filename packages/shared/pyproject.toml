@@ -1,0 +1,9 @@
+[project]
+name = "ai-video-studio-shared"
+version = "0.1.0"
+description = "Shared contracts and domain package skeleton for AI Video Studio"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
