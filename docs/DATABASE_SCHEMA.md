@@ -1,45 +1,49 @@
-# Database Schema Design
+# Database Schema Architecture
 
 ## Overview
 
-The database architecture for AI Video Studio must support transactional operations, collaborative editing, AI execution tracking, media asset management, and large-scale media workflows. The design should balance relational integrity for core business objects with flexible storage and metadata handling for media and AI execution history.
+This document defines the database architecture for AI Video Studio. It specifies the persistence strategy, core entities, relationships, ownership boundaries, versioning approaches, audit requirements, and multi-tenant considerations that support the product’s editing, AI execution, collaboration, media, and billing workflows.
 
-This document defines the architectural database strategy and the major entity domains that should be represented in the persistence layer. It complements the data model definition and should remain consistent with the broader platform architecture.
-
-## Database Architecture Principles
-
-- Use transactional databases for structured, consistency-sensitive domain objects
-- Use object storage for large binary assets and derived media files
-- Use metadata and search structures for fast content discovery and analysis results
-- Preserve auditability for user actions, AI operations, and project changes
-- Support versioning and history for collaborative editing and rollback
-- Design for horizontal growth and future enterprise-scale usage
+The persistence model must balance transactional integrity for core business objects with flexible storage for large media assets, AI execution history, and operational metadata.
 
 ---
 
-## Storage Strategy
+## Database Architecture Principles
+
+The platform should follow these design principles:
+
+- Use transactional databases for structured, consistency-sensitive domain objects.
+- Use object storage for large binary assets and derived media artifacts.
+- Use metadata or search stores for fast content discovery and enrichment results.
+- Preserve auditability for edits, AI operations, permissions, and exports.
+- Support versioned state for projects, timelines, and AI workflows.
+- Design for horizontal growth and enterprise-scale usage.
+
+---
+
+## Storage Architecture
 
 ### Operational Database
 
-The operational database should store the system’s core transactional data, including:
+The operational database should store transactional data such as:
 
 - users and accounts
 - workspaces and memberships
 - projects and timelines
 - permissions and roles
-- collaboration state
-- subscriptions and billing state
-- audit logs and operational events
+- collaboration data
+- billing and entitlements
+- audit records and operational events
 
 ### Object Storage
 
-Object storage should contain large media files and generated artifacts such as:
+Object storage should host large media files and generated artifacts such as:
 
 - original source assets
-- proxy media
-- thumbnails
+- raw uploads and temporary staging files
+- proxy media and thumbnails
 - renders and exports
-- AI-generated intermediates
+- AI-generated intermediate assets
 - analysis outputs and packaged delivery assets
 
 ### Metadata and Search Layer
@@ -50,7 +54,7 @@ A metadata or search layer should support fast access to:
 - transcripts and captions
 - scene and content analysis results
 - project history and searchable operations
-- collaboration and comment context
+- collaboration comments and review context
 
 ---
 
@@ -58,7 +62,7 @@ A metadata or search layer should support fast access to:
 
 ### User and Account Entities
 
-The database should represent:
+The persistence layer should represent:
 
 - users
 - accounts
@@ -66,13 +70,14 @@ The database should represent:
 - preferences
 - subscription and entitlement state
 
-These entities should capture identity, access context, and product usage state.
+These entities capture identity, access context, and product usage state.
 
-### Workspace and Membership Entities
+### Workspace and Organization Entities
 
 The database should represent:
 
 - workspaces
+- organizations
 - workspace memberships
 - roles and permissions
 - collaboration policies
@@ -85,14 +90,15 @@ Project entities should describe:
 - project identifier and ownership
 - workspace association
 - project metadata and status
-- project lifecycle and version state
-- associated timelines and assets
+- lifecycle state
+- associated timeline and assets
+- current and historical versions
 
 ### Timeline Entities
 
-Timeline entities should represent the editing structure of a project. These should include:
+Timeline entities should represent the editing structure of a project and should include:
 
-- timeline identity
+- timeline identifier
 - associated project and version
 - track structure
 - clip placement and timing
@@ -102,34 +108,89 @@ Timeline entities should represent the editing structure of a project. These sho
 
 ### Media Asset Entities
 
-Media assets should be represented as first-class entities with:
+Media assets should be modeled as first-class entities with:
 
-- asset identity and ownership
+- asset identifier and ownership
 - source location and storage reference
 - media type and file characteristics
 - metadata and analysis results
 - derivative references such as proxies and thumbnails
-- permissions and lifecycle state
+- lifecycle state and permissions
 
 ---
 
-## AI and Execution Entities
+## Relationship Model
 
-### AI Execution History
+The core relationships should be modeled as follows:
 
-The database should preserve a durable history of AI activities, including:
+- A workspace contains many projects and memberships.
+- A project belongs to one workspace and may have many timelines and assets.
+- A timeline belongs to one project and contains many tracks and clips.
+- A media asset may be associated with many projects and timelines.
+- A user may belong to many workspaces and hold many roles.
+- AI execution records reference the relevant project, asset, agent, tool, and user context.
 
-- request identifier
-- source context and session identifier
-- structured command reference
-- model version information
-- tool execution references
+These relationships should be represented using relational references and, where appropriate, durable link tables for many-to-many associations.
+
+---
+
+## Data Ownership
+
+Each domain should have a clearly authoritative persistence owner.
+
+- User and identity data is owned by the identity and user services.
+- Workspace and membership data is owned by the workspace and organization domain.
+- Project and timeline state is owned by the project and timeline services.
+- Asset and media metadata is owned by the media service.
+- AI execution lineage is owned by the AI orchestration and execution services.
+- Billing and entitlement data is owned by the billing service.
+
+This ownership model avoids ambiguous writes and cross-service data duplication.
+
+---
+
+## Project Versioning and History
+
+The architecture should support history-aware persistence for project and timeline state.
+
+### Versioning Requirements
+
+- versioned project snapshots
+- timeline revision records
+- branch or alternative state references where relevant
+- immutable change records for auditable editing workflows
+- rollback and compare support for collaborative operations
+
+### Recommended Pattern
+
+The system should persist:
+
+- current project state
+- a version history log
+- snapshot data for major checkpoints
+- metadata describing the cause and context of each revision
+
+---
+
+## AI History and Execution Storage
+
+The database should preserve a durable history of AI activity.
+
+### AI Execution Records
+
+AI execution data should include:
+
+- execution identifier
+- request identifier and session context
+- source command reference
+- provider and model version information
+- agent and tool execution references
 - execution state and result summary
-- approval and rollback status
+- approval, rollback, and error state
 
 ### Agent Execution Records
 
-The database should record agent-driven execution where appropriate, including:
+The system should record:
 
 - agent identity and role
 - task identifier and parent context
@@ -140,90 +201,142 @@ The database should record agent-driven execution where appropriate, including:
 
 ### Tool Invocation Records
 
-Tool usage should be persisted so that reproducibility, auditing, and debugging remain possible. These records should capture:
-
-- tool identity and version
-- invocation parameters
-- execution state
-- result summary
-- related command and project references
+Tool execution should be persisted for reproducibility, debugging, and auditing.
 
 ---
 
-## Permissions and Governance Entities
+## Asset Metadata and Media Representation
 
-The database should support enterprise governance through entities such as:
+Media assets should be represented in a way that separates physical storage from logical metadata.
 
-- roles
-- permission grants
-- resource access policies
-- tenant boundaries
-- audit event entries
+### Asset Metadata
 
-This ensures that access decisions can be evaluated consistently and logged for review.
+Asset metadata should include:
+
+- asset identifier
+- owner and visibility
+- media type and format
+- technical characteristics
+- processing status
+- storage references
+- derived asset references
+- tags and labels
+
+### Asset Relationships
+
+Assets should be linked to:
+
+- projects
+- timelines
+- clips or edits
+- AI analysis outputs
+- rendering results
 
 ---
 
-## Subscription and Billing Entities
+## Timeline Representation
 
-The persistence layer should include the data needed to manage product entitlements and billing. This may include:
+Timeline data should be structured so the editor can efficiently read and update project state.
 
-- subscription records
-- plan identifiers
-- usage counters or quotas
-- billing event references
-- entitlement states
+### Timeline Structure
+
+The timeline representation should include:
+
+- track definitions
+- clip placement and timing
+- sequencing information
+- effect and transition assignments
+- reference to source assets
+- revision markers and snapshots
+
+### Edit History
+
+The database should preserve a structured history of edits, including:
+
+- operation type
+- actor identity
+- timestamp
+- before and after state references
+- associated revision IDs
 
 ---
 
-## Audit and Event Entities
+## Collaboration and Audit Records
 
-The database should record operational history and audit trails, including:
+The persistence model should support collaboration and auditability.
+
+### Collaboration Records
+
+The system should store:
+
+- comments and review threads
+- approval or rejection state
+- shared access history
+- presence or activity events where relevant
+
+### Audit Records
+
+The platform should maintain records for:
 
 - authentication events
 - project modification events
 - AI execution events
-- rendering or export events
+- rendering and export events
 - permission changes
 - collaboration actions
 
-These records should be retained in a way that supports compliance and operational review.
+These records should be retained in a way that supports compliance review and operational troubleshooting.
 
 ---
 
-## Versioning and History Design
+## Multi-Tenant Considerations
 
-The system should support history-aware persistence for project and timeline state. Important patterns include:
+The database design should enforce tenant boundaries at the data model level.
 
-- versioned project snapshots
-- timeline revision records
-- branch or alternative state references where relevant
-- immutable change records for auditable editing flows
+### Requirements
 
-This design supports rollback, comparison, and collaborative conflict resolution.
+- every tenant-scoped record should carry tenant or workspace context
+- access policies must be enforceable at query time
+- cross-tenant joins should be avoided unless explicitly required
+- audit and billing records should remain easily segregated
+
+### Data Partitioning Strategy
+
+The architecture should support:
+
+- shared schema with tenant discriminator fields where appropriate
+- logical partitioning per tenant or workspace for sensitive domains
+- separate storage policies for high-volume or high-sensitivity data where needed
 
 ---
 
-## Scalability Considerations
+## Scalability and Performance Considerations
 
-The database design should support future growth by using:
+The persistence design should support growth without introducing data bottlenecks.
 
-- clear partitioning or sharding strategies for high-volume entities where appropriate
-- asynchronous writes for heavy processing operations
-- durable event logs for workflow state propagation
-- cache layers for frequently accessed metadata
-- separation between operational data and large media payloads
+### Scalability Requirements
 
-The architecture should remain compatible with enterprise-scale usage and future expansion into additional product surfaces and integrations.
+- efficient reads for active project state
+- scalable write paths for collaboration and AI operations
+- caching for hot metadata paths
+- asynchronous write support for non-critical events
+- separation of operational data from large binary payloads
+
+### Storage Strategy Recommendations
+
+- transactional database for relational state
+- object storage for media files and artifacts
+- search/indexing layer for metadata and content discovery
+- event log or stream for workflow state propagation where appropriate
 
 ---
 
 ## Relationship to Existing Architecture
 
-This document should be read together with:
+This document should be read alongside:
 
-- DATA_MODELS.md for the conceptual domain model
-- AI_COMMAND_SPEC.md for execution lineage data needs
+- DATA_MODELS.md for conceptual domain modeling
+- AI_COMMAND_SPEC.md for execution lineage needs
 - AGENT_PROTOCOL.md for agent execution and state records
-- VIDEO_ENGINE_SPECIFICATION.md for timeline and rendering-related persistence requirements
-- ARCHITECTURE.md for overall system decomposition
+- VIDEO_ENGINE_SPECIFICATION.md for timeline and rendering-state persistence requirements
+- ARCHITECTURE.md for the overall system decomposition

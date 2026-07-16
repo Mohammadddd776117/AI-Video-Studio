@@ -1,262 +1,550 @@
 # Flutter Application Architecture
 
-## 1. Application Architecture Overview
+## Overview
 
-The Flutter application is the primary client experience for AI Video Studio. It connects users to the editing workspace, AI-assisted workflows, backend services, media engines, and cloud-based processing infrastructure. The application must be designed as a scalable, enterprise-grade client platform that can support professional editing, AI interaction, collaboration, and long-running media workflows.
+This document defines the complete Flutter application architecture for AI Video Studio. It describes how the mobile client is organized, how it manages state and navigation, how it integrates with backend services and AI workflows, and how it supports enterprise-grade editing and media operations.
 
-### Overall Structure
-
-The Flutter application should be organized as a layered system with clear separation between:
-
-- presentation concerns
-- application workflow orchestration
-- domain business rules
-- data access and persistence
-- infrastructure services and device integrations
-
-This separation is necessary to maintain a large application over time, support multiple product surfaces, and enable independent evolution of UI experiences, business logic, and backend integration.
-
-### Principles for Maintainability and Scalability
-
-The architecture should follow these principles:
-
-- Clear separation of concerns across layers
-- Feature-based organization for scalability
-- Stable contracts for communication with backend services
-- Deterministic state handling for editing workflows
-- Reusable business logic independent of UI implementation
-- Support for offline-first and sync-aware behavior
-- Extensibility for new AI providers, new editors, and enterprise features
+The architecture is intended to support a large-scale product experience without becoming tightly coupled to any single backend implementation or AI provider.
 
 ---
 
-## 2. Feature-Based Architecture
+## Flutter Application Structure
 
-The Flutter application should be organized around product capabilities rather than screen-only modules. Each feature should encapsulate its own UI, state, domain logic, and service integration boundaries.
+The Flutter application should be structured as a layered platform with clear separation between presentation, business logic, data access, and infrastructure concerns.
 
-### Feature Areas
+### Architectural Layers
 
-- Authentication: sign-in, session handling, identity state, token management, role awareness
-- Dashboard: project overview, recent work, onboarding, notifications, workspace selection
-- Projects: creation, loading, organization, sharing, metadata, and project lifecycle
-- Editor Workspace: timeline editing, preview playback, controlling project state, and editing operations
-- Timeline: sequence management, track handling, clip organization, and edit history
-- Media Assets: import, browsing, tagging, metadata, local cache, and cloud-backed assets
-- AI Assistant: prompt handling, command generation, tool orchestration, preview and approval flows
-- Templates: reusable starting points, presets, brand templates, and workflow starter packs
-- Effects: effect application, preview, parameter editing, and reusable asset handling
-- Export: rendering preparation, export profiles, destination selection, and status tracking
-- Collaboration: comments, share links, permissions, review states, and real-time presence
-- Settings: preferences, account preferences, integrations, workspace configuration, and offline options
+- Presentation Layer: screens, widgets, dialogs, panels, and interaction components
+- Application Layer: controllers, use cases, workflow orchestrators, and navigation coordination
+- Domain Layer: entities, business rules, validation, workflow policies
+- Data Layer: repositories, local persistence, API clients, caching, and synchronization
+- Infrastructure Layer: file access, device services, background tasks, and platform integrations
 
-### Feature Module Structure
+### Architectural Goals
 
-Each feature module should expose a consistent internal structure:
-
-- presentation layer for screens and widgets
-- application layer for controllers and workflow orchestration
-- domain layer for rules, entities, use cases, and validation
-- data layer for API, storage, and synchronization logic
-- infrastructure integration for platform services and device capabilities
+- separate UI from business logic
+- keep feature modules cohesive and independent
+- support deterministic editing workflows
+- enable offline-first and sync-aware operation
+- support future extension to web or desktop surfaces
 
 ---
 
-## 3. Layer Architecture
+## Feature-Based Folder Organization
 
-The application should be layered so that UI changes do not force changes in domain or infrastructure rules.
+The Flutter application should be organized by product capability rather than by technical concern alone.
 
-### Presentation Layer
+### Recommended Feature Areas
 
-The presentation layer is responsible for how the application appears and how users interact with it.
+- auth/: authentication, onboarding, session state
+- dashboard/: workspace selection, recent projects, notifications
+- projects/: project creation, metadata, sharing, project lifecycle
+- editor/: timeline editing workspace, preview, selection, manipulation tools
+- media/: import, browsing, metadata, thumbnails, proxies
+- ai/: prompts, command submission, assistant experience, approvals
+- templates/: starter templates and presets
+- effects/: effects, transitions, filters, reusable presets
+- export/: render setup, export profiles, output history
+- collaboration/: comments, reviews, presence, sharing
+- settings/: preferences, account settings, accessibility, integrations
 
-#### Screens
+### Module Structure Within Each Feature
 
-Screens represent primary user flows such as authentication, project view, editor workspace, AI assistant, export, and settings. Each screen should be focused on a single user intent and should coordinate feature-specific widgets.
+Each feature module should contain:
 
-#### Widgets
-
-Widgets represent reusable UI components that display data, collect input, and trigger actions. They should remain focused on rendering and user interaction, while business decisions should be handled by higher layers.
-
-#### UI State
-
-UI state tracks transient display conditions such as selection state, loading state, panel visibility, keyboard state, animation state, and temporary user interaction state.
-
-### Application Layer
-
-The application layer coordinates workflows and mediates between UI and domain logic.
-
-#### Controllers
-
-Controllers should manage feature workflows, coordinate state transitions, and respond to user actions. They should interpret screen events and invoke higher-level business logic without embedding UI rendering details.
-
-#### State Management
-
-State management should organize runtime state for the entire application, including:
-
-- user sessions
-- project selection and active editing context
-- timeline and media state
-- AI request state
-- collaboration state
-- offline synchronization state
-
-This layer should enable predictable updates and consistent behavior across the application.
-
-#### User Workflows
-
-The application layer should define user workflow orchestration such as creating a project, importing media, applying AI edits, reviewing previews, exporting assets, and syncing changes.
-
-### Domain Layer
-
-The domain layer defines the business meaning of the application.
-
-#### Business Rules
-
-This layer should contain rules related to editing logic, permissions, validity of operations, approval behavior, rendering requirements, and collaboration constraints.
-
-#### Entities
-
-Entities represent core concepts such as projects, timelines, clips, assets, commands, approvals, sessions, and workspaces.
-
-#### Use Cases
-
-Use cases express user-oriented operations such as start editing, apply trim, request AI captioning, approve a render, or sync offline changes.
-
-### Data Layer
-
-The data layer handles reading and writing data from various sources.
-
-#### APIs
-
-APIs provide access to backend services for project data, AI commands, media operations, collaboration state, and export tracking.
-
-#### Local Storage
-
-Local storage is responsible for persistent offline data such as drafts, cached assets, preferences, project metadata, and queued operations.
-
-#### Cloud Synchronization
-
-Cloud synchronization coordinates the flow between local state and remote systems, ensuring that user activity is reflected across devices and services.
-
-### Infrastructure Layer
-
-The infrastructure layer connects the app to platform capabilities.
-
-#### Device Services
-
-Device services handle access to file systems, camera roll, media metadata, storage quotas, notifications, and device-specific hardware capabilities.
-
-#### File Handling
-
-File handling should manage import/export operations, media access, temp files, chunked uploads, and local asset lifecycle.
-
-#### Background Tasks
-
-Background tasks should support long-running actions such as uploads, sync, media processing, render tracking, and queued AI tasks while preserving reliability and battery awareness.
+- presentation/: screens, widgets, dialogs, panels
+- application/: controllers, state handlers, workflow orchestration
+- domain/: entities, use cases, validation logic, business rules
+- data/: repositories, API adapters, offline models, sync logic
+- infrastructure/: device integrations, file access, background processing hooks
 
 ---
 
-## 4. State Management Architecture
+## Presentation Layer Architecture
 
-State management is critical because the application must support both simple UI interactions and complex editing workflows.
+The presentation layer should remain focused on displaying state and interacting with the user.
 
-### Global Application State
+### Screen Responsibilities
 
-Global application state should handle:
+Screens should represent clear user journeys such as:
 
-- authentication session
-- workspace selection
-- current user identity
-- network and connectivity status
-- global notifications and error state
+- welcome and authentication
+- workspace and project dashboard
+- editor workspace
+- AI assistant experience
+- export workflow
+- collaboration review workflow
+- settings and account management
 
-### Project Editing State
+### Widget Composition Strategy
 
-Project editing state should track the active project, current timeline version, selection, unsaved changes, pending operations, and current edit context.
+The UI should be assembled from reusable components that are categorized by role:
 
-### Timeline State
+- primitive widgets for layout and interaction
+- feature widgets for domain-specific controls
+- container widgets for state-driven composition
+- editor panels for timeline, asset, and AI surfaces
 
-Timeline state should manage:
+### UI State Boundaries
 
-- current sequence of clips and tracks
-- playback position
-- selection state
-- edit history and pending changes
-- preview and render readiness
+UI state should capture transient concerns such as:
 
-### AI Session State
+- loading and error state
+- selected assets or clips
+- panel visibility
+- keyboard or device input state
+- temporary in-progress actions
 
-AI session state should track:
-
-- active prompts and conversation context
-- selected assets and target areas
-- pending AI actions
-- approvals and revisions
-- responses from AI services
-
-### User Preferences
-
-User preferences should manage:
-
-- preferred editing mode
-- accessibility options
-- performance versus quality settings
-- default templates and workspace defaults
-- collaboration visibility preferences
-
-### Offline Synchronization State
-
-This state should track:
-
-- queued local changes
-- pending uploads or sync operations
-- conflicts or merge requirements
-- available offline content
-- last successful sync state
+The UI should avoid embedding core business logic and should delegate to the application and domain layers.
 
 ---
 
-## 5. Media Handling Architecture
+## Business Logic Layer
 
-The application must be able to manage media robustly for both small personal projects and large enterprise productions.
+The business logic layer contains the workflows and rules that define product behavior.
 
-### Video Import
+### Responsibilities
 
-The app should support import flows for local and remote video files, including validation, metadata extraction, and staging before use in the editor.
+- editing workflow rules
+- permission and entitlement checks
+- AI command interpretation and execution coordination
+- render and export readiness decisions
+- collaboration and review flow logic
+- workspace and project lifecycle operations
 
-### Audio Import
+### Use Case Orientation
 
-Audio import should be handled through the same media lifecycle, including metadata and synchronization awareness.
+The business logic should be expressed through use cases and workflow services rather than being embedded directly in widgets. Examples include:
 
-### Image Assets
-
-Image assets should be managed as first-class media types with preview, transform, and placement support in the editing workspace.
-
-### Local Caching
-
-Local caching should reduce latency and support offline editing by storing thumbnails, metadata, and low-cost proxy media locally.
-
-### Proxy Media
-
-Proxy media should be used to improve responsiveness in the timeline and preview experience, especially on mobile devices or during large project edits.
-
-### Upload Management
-
-Upload workflows should include:
-
-- progress tracking
-- retry support
-- background continuation
-- validation and integrity checks
-- storage placement awareness
-
-### Large File Handling
-
-The architecture should support large files through chunking, deferred loading, compression-aware workflows, and background processing where appropriate.
+- create project
+- import media
+- apply AI edit
+- prepare preview
+- submit export job
+- approve collaborator change
 
 ---
 
-## 6. Editor Workspace Architecture
+## Data Layer
+
+The data layer manages retrieval, storage, caching, and synchronization of application data.
+
+### Repository Pattern
+
+Repositories should abstract the source of data and provide a stable interface for application services. They should be responsible for:
+
+- reading and writing domain objects
+- mapping remote responses into local models
+- handling caching and invalidation
+- managing network or storage failures
+
+### Data Sources
+
+The data layer should support:
+
+- backend API access
+- local device storage
+- cached metadata and thumbnails
+- queued operations for later synchronization
+
+### Data Transformation Rules
+
+The data layer should normalize backend responses into domain models and preserve a single source of truth for UI state.
+
+---
+
+## State Management Strategy
+
+State management is essential because the app must support both simple UI flows and complex editing workflows.
+
+### State Scope Model
+
+The application should use a layered state model with explicit ownership:
+
+- global state for authentication, connectivity, workspace selection, and notifications
+- feature state for projects, media, editor workspace, AI sessions, exports, and collaboration
+- screen state for transient UI conditions
+- ephemeral state for dialogs, animations, and temporary selection states
+
+### Recommended State Approach
+
+The architecture should use a structured state management approach based on:
+
+- immutable state objects
+- explicit state transitions
+- event-driven updates
+- controller-based orchestration
+
+This approach is preferable to scattered widget-level state because it improves predictability, testability, and maintainability.
+
+### Core State Domains
+
+The client should manage state for:
+
+- active project and workspace
+- current timeline and revision state
+- selected assets and clips
+- unsaved changes
+- AI prompt context and approvals
+- collaboration and review state
+- offline synchronization and pending operations
+
+---
+
+## Navigation Architecture
+
+Navigation should support simple mobile flows as well as deeply nested editing workflows without becoming brittle.
+
+### Navigation Model
+
+The app should use a route-based architecture with explicit routes for:
+
+- onboarding and authentication
+- workspace and project dashboard
+- editor workspace
+- AI assistant experience
+- export workflow
+- collaboration review workflow
+- settings and account management
+
+### Navigation Principles
+
+- route definitions should remain centralized
+- deep linking should be supported where relevant
+- navigation should preserve project and editing context
+- modal and full-screen flows should be clearly separated
+
+---
+
+## Dependency Injection Approach
+
+Dependency injection should be used to decouple the app from concrete implementations.
+
+### Goals
+
+- inject repositories, services, and platform adapters
+- make runtime behavior configurable
+- support testing and feature isolation
+- allow backend or provider replacement without rewriting UI layers
+
+### Architectural Approach
+
+A dependency injection container or service registration pattern should be used to resolve:
+
+- API clients
+- authentication services
+- local storage adapters
+- AI service clients
+- media service connectors
+- export and rendering clients
+
+Dependencies should be scoped appropriately according to lifecycle and feature usage.
+
+---
+
+## Local Storage Strategy
+
+The client needs persistent local storage for editing continuity, offline support, and performance.
+
+### Storage Responsibilities
+
+Local storage should support:
+
+- cached project metadata
+- recent project references
+- offline drafts and unsaved edits
+- thumbnails and metadata
+- queued operations for synchronization
+- secure storage of authentication and session tokens
+
+### Storage Layers
+
+The storage strategy should include:
+
+- a structured local database for metadata and state
+- file-system storage for larger media and generated artifacts
+- secure storage for sensitive local state
+- cache layers for thumbnails and preview data
+
+---
+
+## Offline-First Capabilities
+
+The app should support offline operation as a product requirement rather than as an afterthought.
+
+### Offline Design Goals
+
+- allow users to continue editing without connectivity
+- preserve local state and draft progress
+- queue changes for later synchronization
+- provide clear local versus remote state indicators
+
+### Offline Capabilities
+
+The client should support:
+
+- local draft saving
+- cached asset browsing
+- queued AI operations where suitable
+- deferred sync for project and collaboration changes
+- offline review of recent work and metadata
+
+### Conflict Handling
+
+The offline model should define how local changes are reconciled with remote updates through conflict detection, merge policies, and user guidance.
+
+---
+
+## Media Handling Architecture
+
+Media handling is a core architectural concern because the editor and AI workflows depend on rich media access.
+
+### Media Responsibilities
+
+The client should manage:
+
+- file selection and import
+- local media access and permissions
+- metadata extraction
+- thumbnail generation and caching
+- proxy media preparation
+- media playback state
+- background upload and sync coordination
+
+### Media Layer Boundaries
+
+The media layer should abstract:
+
+- storage location and retrieval
+- upload and processing status
+- thumbnail and proxy availability
+- render output references
+
+This keeps the editor and UI layers from directly depending on transport or storage implementation details.
+
+---
+
+## Timeline Editor Architecture
+
+The timeline editor is the most important interactive surface in the mobile application.
+
+### Editor Composition
+
+The editor workspace should be composed of:
+
+- preview canvas
+- timeline track area
+- selection and manipulation controls
+- contextual tool panels
+- AI assistant surface
+- history and version context panel
+
+### Interaction Model
+
+The editor should support:
+
+- clip selection and manipulation
+- track selection and ordering
+- drag-and-drop editing interactions
+- playback and scrubbing
+- alignment and snapping behavior
+- contextual actions based on current selection
+
+### Performance Requirements
+
+The editor must remain responsive even when handling large projects. It should support:
+
+- efficient re-rendering
+- selective updates for changed segments
+- viewport-aware asset loading
+- asynchronous preview generation and caching
+
+---
+
+## AI Assistant Interface Architecture
+
+The AI assistant should be integrated into the editing flow rather than treated as a separate or secondary capability.
+
+### Assistant Surface Structure
+
+The AI assistant should provide:
+
+- prompt input area
+- quick action suggestions
+- progress and status feedback
+- preview or change summary view
+- approval and refinement controls
+
+### Interaction Flow
+
+The assistant should support:
+
+- natural language requests
+- command preview before execution
+- approvals and rejections
+- iterative refinement of AI output
+
+The UI should delegate execution to the application layer and should not directly depend on provider-specific implementation details.
+
+---
+
+## Project Workspace Architecture
+
+The project workspace provides the main context for editing, media management, AI commands, collaboration, and export.
+
+### Workspace Responsibilities
+
+The workspace should unify:
+
+- project metadata and status
+- timeline and media context
+- AI actions and approvals
+- collaboration and review awareness
+- export readiness and progress
+
+### Workspace State Model
+
+The workspace should preserve a coherent model of:
+
+- active project
+- current version or revision
+- selected assets and timeline objects
+- pending changes and sync status
+- active collaborators or review state
+
+---
+
+## Collaboration UI Architecture
+
+Collaboration should be embedded into the editing experience without disrupting the primary workflow.
+
+### Collaborative UI Elements
+
+The UI should support:
+
+- participant presence indicators
+- review comments and note threads
+- sharing and permission state
+- version comparison and history awareness
+
+### Synchronization Awareness
+
+The interface should clearly indicate whether content is:
+
+- local only
+- syncing
+- remote updated
+- conflicting
+
+---
+
+## Performance Optimization Strategy
+
+Performance is a core architectural requirement because the app includes media, AI workflows, and live editing interactions.
+
+### Performance Principles
+
+- keep UI updates localized and efficient
+- reduce unnecessary rebuilds
+- defer non-critical work to background tasks
+- cache previews, thumbnails, and metadata
+- keep network and media processing asynchronous
+- avoid blocking the main UI thread during large operations
+
+### Optimization Areas
+
+- editor rendering and timeline interaction responsiveness
+- thumbnail and proxy loading
+- asset import and upload handling
+- AI workflow latency
+- memory use for large media assets
+
+---
+
+## Plugin and Extension Architecture
+
+The Flutter application should be extensible for future platform growth.
+
+### Extension Model
+
+The app should support extension points for:
+
+- additional media importers
+- AI provider integrations
+- export destinations
+- collaboration integrations
+- analytics hooks
+
+### Extension Boundaries
+
+Extensions should integrate through stable interfaces in the application and data layers and should avoid direct manipulation of core UI internals.
+
+---
+
+## Scalability Considerations
+
+The Flutter application should be designed to scale across features, users, and product surfaces.
+
+### Scalability Principles
+
+- feature modules should remain loosely coupled
+- business logic should be reusable across screens
+- state management should remain explicit and testable
+- the architecture should support future web and desktop expansion
+
+---
+
+## Communication with Platform Services
+
+The Flutter application communicates with the rest of the platform through clearly defined interfaces.
+
+### API Gateway
+
+The client should interact with the API Gateway for:
+
+- authentication
+- project and workspace APIs
+- collaboration and review APIs
+- export and workflow APIs
+
+### Backend Services
+
+The client should communicate with backend services through a dedicated service client layer that encapsulates transport details, retries, authentication, and error normalization.
+
+### AI Core
+
+The client should submit AI commands through a structured interaction layer that handles:
+
+- request packaging
+- approval management
+- execution status tracking
+- result normalization
+
+### Media Processing Services
+
+The client should interact with media services for:
+
+- asset upload and processing status
+- thumbnail and proxy retrieval
+- render job submission and progress tracking
+
+---
+
+## Relationship to Existing Architecture
+
+This document aligns with the broader architecture set and should be read together with:
+
+- ARCHITECTURE.md for the overall platform structure
+- AI_SYSTEM.md for AI runtime and orchestration expectations
+- AI_RUNTIME_ARCHITECTURE.md for execution behavior details
+- BACKEND_SERVICES_DESIGN.md for service boundaries and communication expectations
+- API_CONTRACTS.md for API and network contract expectations
+
+---
+
+## Why This Document Is Required Before Implementation
+
+This document is required before implementation because it defines the engineering foundation of the Flutter client. It ensures that the application is built around scalability, clear responsibilities, stable integrations, and long-term maintainability rather than as a loosely connected collection of screens and features.
 
 The Flutter app should make the editor workspace the central production surface for the user experience.
 
